@@ -1,0 +1,68 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rent-erp-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      DB_HOST: pgsql
+      DB_PORT: 5432
+    depends_on:
+      - pgsql
+    networks:
+      - rent-erp
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: rent-erp-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - rent-erp
+
+  pgsql:
+    image: postgres:18-alpine
+    container_name: rent-erp-pgsql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - rent-erp-pgsql:/var/lib/postgresql/data
+    networks:
+      - rent-erp
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rent-erp-scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - pgsql
+    command: ["/bin/sh", "-lc", "while true; do php artisan schedule:run --no-interaction; sleep 60; done"]
+    networks:
+      - rent-erp
+
+networks:
+  rent-erp:
+    driver: bridge
+
+volumes:
+  rent-erp-pgsql:
+    driver: local

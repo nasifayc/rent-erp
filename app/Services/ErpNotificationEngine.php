@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BranchUtility;
 use App\Models\Notification;
 use App\Models\OfficeRentAgreement;
+use App\Models\OfficeRentPayment;
 use App\Models\UtilityPayment;
 use App\Models\VehicleInspection;
 use App\Models\VehicleLicense;
@@ -20,7 +21,11 @@ class ErpNotificationEngine
         $today = Carbon::today();
         $count = 0;
 
+        $this->generateScheduledUtilityPayments($today);
+        $this->generateScheduledRentPayments($today);
+
         $count += $this->generateAgreementExpiryAlerts($today);
+        $count += $this->generateRentDueAlerts($today);
         $count += $this->generateVehicleLicenseAlerts($today);
         $count += $this->generateVehicleInspectionAlerts($today);
         $count += $this->generateUtilityDueAlerts($today);
@@ -28,6 +33,95 @@ class ErpNotificationEngine
         $count += $this->generateServiceRequestApprovalAlerts();
 
         return $count;
+    }
+
+    private function generateScheduledUtilityPayments(Carbon $today): void
+    {
+        $utilities = BranchUtility::query()
+            ->where('status', 'active')
+            ->get();
+
+        foreach ($utilities as $utility) {
+            $dueDate = $utility->next_due_date
+                ? Carbon::parse($utility->next_due_date)
+                : $today->copy()->endOfMonth();
+
+            if (! $dueDate->isSameMonth($today)) {
+                continue;
+            }
+
+            UtilityPayment::query()->firstOrCreate(
+                [
+                    'branch_utility_id' => $utility->id,
+                    'billing_month' => $today->copy()->startOfMonth()->toDateString(),
+                ],
+                [
+                    'due_date' => $dueDate->toDateString(),
+                    'amount_due' => 0,
+                    'amount_paid' => 0,
+                    'status' => 'pending',
+                ],
+            );
+        }
+    }
+
+    private function generateScheduledRentPayments(Carbon $today): void
+    {
+        $agreements = OfficeRentAgreement::query()
+            ->where('status', OfficeRentAgreement::STATUS_ACTIVE)
+            ->get();
+
+        foreach ($agreements as $agreement) {
+            if (! $this->isDueInCurrentCycle($agreement, $today)) {
+                continue;
+            }
+
+            $months = $this->paymentCycleMonths($agreement->payment_schedule);
+            $dueDate = $today->copy()->setDay(min($agreement->start_date->day, $today->daysInMonth));
+
+            if ($dueDate->greaterThan($agreement->end_date)) {
+                continue;
+            }
+
+            OfficeRentPayment::query()->firstOrCreate(
+                [
+                    'office_rent_agreement_id' => $agreement->id,
+                    'due_date' => $dueDate->toDateString(),
+                ],
+                [
+                    'billing_period_start' => $dueDate->copy()->subMonths($months - 1)->startOfMonth()->toDateString(),
+                    'billing_period_end' => $dueDate->copy()->endOfMonth()->toDateString(),
+                    'amount_due' => (float) $agreement->monthly_rent * $months,
+                    'amount_paid' => 0,
+                    'status' => OfficeRentPayment::STATUS_PENDING,
+                ],
+            );
+        }
+    }
+
+    private function generateRentDueAlerts(Carbon $today): int
+    {
+        $created = 0;
+
+        $payments = OfficeRentPayment::query()
+            ->where('status', OfficeRentPayment::STATUS_PENDING)
+            ->whereDate('due_date', '<=', $today->copy()->addDays(7))
+            ->get();
+
+        foreach ($payments as $payment) {
+            $agreement = $payment->agreement;
+
+            $created += $this->createOnce(
+                type: 'rent_due',
+                title: "Rent payment due: {$agreement?->agreement_id}",
+                message: "Rent payment for branch {$agreement?->branch?->name} is due on {$payment->due_date?->format('Y-m-d')}",
+                notifiableType: OfficeRentPayment::class,
+                notifiableId: $payment->id,
+                sentAt: $today,
+            );
+        }
+
+        return $created;
     }
 
     private function generateAgreementExpiryAlerts(Carbon $today): int
@@ -240,5 +334,28 @@ class ErpNotificationEngine
         ]);
 
         return 1;
+    }
+
+    private function paymentCycleMonths(string $paymentSchedule): int
+    {
+        return match ($paymentSchedule) {
+            'quarterly' => 3,
+            'semi_annual' => 6,
+            'annual' => 12,
+            default => 1,
+        };
+    }
+
+    private function isDueInCurrentCycle(OfficeRentAgreement $agreement, Carbon $today): bool
+    {
+        $cycleMonths = $this->paymentCycleMonths($agreement->payment_schedule);
+
+        $monthsDiff = $agreement->start_date->copy()->startOfMonth()->diffInMonths($today->copy()->startOfMonth());
+
+        if ($monthsDiff < 0) {
+            return false;
+        }
+
+        return $monthsDiff % $cycleMonths === 0;
     }
 }

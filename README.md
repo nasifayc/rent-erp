@@ -56,3 +56,72 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Rent ERP Module Coverage
+
+Implemented business areas:
+
+- Branch opening and office rent agreement lifecycle (request, preparation, legal approve/reject, activation).
+- Agreement period tracking with expiry alerts (90/60/30 days).
+- Renewal/amend/terminate decision workflow and approval path.
+- Vehicle service workflow (driver request -> fleet approve/assign -> completion -> maintenance history update).
+- Periodic vehicle maintenance tracking (mileage + time-based checks).
+- Bolo/license and inspection expiry tracking with 60/30/7-day alerts.
+- Utility registration, utility billing records, due reminders, and payment closing.
+- Rent payment ledger and due notifications.
+- Notification channels:
+    - Dashboard (`erp:notifications-generate`)
+    - Email (`erp:notifications-dispatch-email`)
+    - Optional SMS integration placeholder (`erp:notifications-dispatch-sms`)
+
+## Local Development (Sail)
+
+```bash
+FORWARD_DB_PORT=5433 ./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate --seed
+npm install
+npm run dev
+```
+
+Open:
+
+- App: `http://localhost:8080`
+- Admin: `http://localhost:8080/admin`
+
+## Production Docker Deployment
+
+Production files added:
+
+- `Dockerfile`
+- `docker-compose.prod.yml`
+- `docker/nginx/default.conf`
+- `docker/php-entrypoint.sh`
+- `.dockerignore`
+
+Deploy steps:
+
+1. Create/prepare `.env` for production (`APP_ENV=production`, `APP_DEBUG=false`, mail settings, DB credentials).
+2. Build and start:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+3. Run migrations and seed roles/admin account:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --seed --force
+```
+
+4. (Optional) trigger ERP notification jobs manually:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app php artisan erp:notifications-generate
+docker compose -f docker-compose.prod.yml exec app php artisan erp:notifications-dispatch-email
+```
+
+Stop production stack:
+
+```bash
+docker compose -f docker-compose.prod.yml down
+```

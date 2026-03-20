@@ -100,4 +100,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(UtilityPayment::class, 'recorded_by');
     }
+
+    public function recordedOfficeRentPayments(): HasMany
+    {
+        return $this->hasMany(OfficeRentPayment::class, 'recorded_by');
+    }
 }

@@ -65,6 +65,11 @@ class OfficeRentAgreement extends Model
         return $this->hasMany(AgreementRenewal::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(OfficeRentPayment::class);
+    }
+
     public function daysUntilExpiry(): int
     {
         return (int) Carbon::today()->diffInDays($this->end_date, false);

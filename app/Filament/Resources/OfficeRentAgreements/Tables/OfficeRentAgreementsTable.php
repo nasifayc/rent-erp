@@ -105,6 +105,10 @@ class OfficeRentAgreementsTable
                             'approved_at' => now(),
                         ]);
 
+                        $record->branch?->update([
+                            'status' => 'active',
+                        ]);
+
                         Notification::make()
                             ->title('Agreement approved and activated')
                             ->success()
