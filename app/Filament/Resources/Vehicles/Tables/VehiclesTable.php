@@ -32,9 +32,27 @@ class VehiclesTable
                 TextColumn::make('current_mileage')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('km_until_service_due')
+                    ->label('KM Until Service Due')
+                    ->state(fn ($record): int => $record->kmUntilServiceDue())
+                    ->badge()
+                    ->color(fn (int $state): string => $state <= 0 ? 'danger' : ($state <= 500 ? 'warning' : 'success')),
                 TextColumn::make('last_service_date')
                     ->date()
                     ->sortable(),
+                TextColumn::make('days_until_inspection_due')
+                    ->label('Days Until Time-Based Check')
+                    ->state(fn ($record): string => ($record->daysUntilInspectionDue() ?? '-') . '')
+                    ->badge()
+                    ->color(function ($state): string {
+                        if ($state === '-') {
+                            return 'gray';
+                        }
+
+                        $days = (int) $state;
+
+                        return $days <= 0 ? 'danger' : ($days <= 30 ? 'warning' : 'success');
+                    }),
                 TextColumn::make('service_interval_km')
                     ->numeric()
                     ->sortable(),
@@ -45,6 +63,7 @@ class VehiclesTable
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('status')
+                    ->badge()
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()

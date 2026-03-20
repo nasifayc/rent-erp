@@ -10,6 +10,18 @@ class AgreementRenewal extends Model
 {
     use HasFactory;
 
+    public const DECISION_RENEW = 'renew';
+
+    public const DECISION_AMEND = 'amend';
+
+    public const DECISION_TERMINATE = 'terminate';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_REJECTED = 'rejected';
+
     protected $fillable = [
         'office_rent_agreement_id',
         'old_rent',

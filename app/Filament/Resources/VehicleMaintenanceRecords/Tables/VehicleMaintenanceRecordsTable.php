@@ -15,10 +15,12 @@ class VehicleMaintenanceRecordsTable
         return $table
             ->columns([
                 TextColumn::make('vehicle.id')
+                    ->label('Vehicle Plate')
+                    ->formatStateUsing(fn ($record): string => $record->vehicle?->plate_number ?? 'N/A')
                     ->searchable(),
-                TextColumn::make('vehicle_service_request_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('serviceRequest.id')
+                    ->label('Service Request')
+                    ->searchable(),
                 TextColumn::make('mileage_at_service')
                     ->numeric()
                     ->sortable(),
@@ -34,7 +36,8 @@ class VehicleMaintenanceRecordsTable
                     ->sortable(),
                 TextColumn::make('next_due_date')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->badge(),
                 TextColumn::make('next_due_mileage')
                     ->numeric()
                     ->sortable(),

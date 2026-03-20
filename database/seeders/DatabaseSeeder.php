@@ -25,7 +25,6 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_ADMIN,
             ],
         );
-
         User::query()->updateOrCreate(
             ['email' => 'legal@rent-erp.test'],
             [
@@ -41,6 +40,33 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Fleet Manager',
                 'password' => Hash::make('password'),
                 'role' => User::ROLE_FLEET_MANAGER,
+            ],
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'operations@rent-erp.test'],
+            [
+                'name' => 'Department Manager',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_DEPARTMENT_MANAGER,
+            ],
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'admin.officer@rent-erp.test'],
+            [
+                'name' => 'Administrative Officer',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_ADMIN_OFFICER,
+            ],
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'driver@rent-erp.test'],
+            [
+                'name' => 'Driver User',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_DRIVER,
             ],
         );
 

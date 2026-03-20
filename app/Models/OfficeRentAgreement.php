@@ -12,6 +12,18 @@ class OfficeRentAgreement extends Model
 {
     use HasFactory;
 
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_PENDING_LEGAL = 'pending_legal';
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUS_RENEWAL_PENDING = 'renewal_pending';
+
+    public const STATUS_TERMINATED = 'terminated';
+
     protected $fillable = [
         'branch_id',
         'agreement_id',
@@ -56,5 +68,10 @@ class OfficeRentAgreement extends Model
     public function daysUntilExpiry(): int
     {
         return (int) Carbon::today()->diffInDays($this->end_date, false);
+    }
+
+    public function requiresRenewalDecision(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE && $this->daysUntilExpiry() <= 30;
     }
 }

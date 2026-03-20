@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vehicles\Schemas;
 
+use App\Models\Vehicle;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -43,9 +44,14 @@ class VehicleForm
                     ->required()
                     ->numeric()
                     ->default(180),
-                TextInput::make('status')
+                Select::make('status')
                     ->required()
-                    ->default('active'),
+                    ->default(Vehicle::STATUS_ACTIVE)
+                    ->options([
+                        Vehicle::STATUS_ACTIVE => 'Active',
+                        Vehicle::STATUS_MAINTENANCE => 'Under Maintenance',
+                        Vehicle::STATUS_INACTIVE => 'Inactive',
+                    ]),
             ]);
     }
 }

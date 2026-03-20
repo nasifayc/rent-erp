@@ -8,7 +8,7 @@ use App\Models\OfficeRentAgreement;
 use App\Models\UtilityPayment;
 use App\Models\VehicleInspection;
 use App\Models\VehicleLicense;
-use App\Models\VehicleMaintenanceRecord;
+use App\Models\Vehicle;
 use App\Models\VehicleServiceRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -113,23 +113,31 @@ class ErpNotificationEngine
     {
         $created = 0;
 
-        $records = VehicleMaintenanceRecord::query()
-            ->where(function ($query) use ($today) {
-                $query
-                    ->whereDate('next_due_date', '<=', $today->copy()->addDays(7))
-                    ->orWhereColumn('next_due_mileage', '<=', 'vehicles.current_mileage');
-            })
-            ->join('vehicles', 'vehicles.id', '=', 'vehicle_maintenance_records.vehicle_id')
-            ->select('vehicle_maintenance_records.*')
+        $vehicles = Vehicle::query()
+            ->where('status', Vehicle::STATUS_ACTIVE)
             ->get();
 
-        foreach ($records as $record) {
+        foreach ($vehicles as $vehicle) {
+            $kmRemaining = $vehicle->kmUntilServiceDue();
+            $daysRemaining = $vehicle->daysUntilInspectionDue();
+
+            $isDueByMileage = $kmRemaining <= 0;
+            $isDueByTime = $daysRemaining !== null && $daysRemaining <= 7;
+
+            if (! $isDueByMileage && ! $isDueByTime) {
+                continue;
+            }
+
+            $reason = $isDueByMileage
+                ? "mileage threshold reached ({$vehicle->current_mileage} km)"
+                : "time-based schedule due in {$daysRemaining} days";
+
             $created += $this->createOnce(
                 type: 'service_due',
                 title: 'Vehicle service is due',
-                message: "Vehicle ID {$record->vehicle_id} requires scheduled maintenance",
-                notifiableType: VehicleMaintenanceRecord::class,
-                notifiableId: $record->id,
+                message: "Vehicle {$vehicle->plate_number} requires scheduled maintenance: {$reason}",
+                notifiableType: Vehicle::class,
+                notifiableId: $vehicle->id,
                 sentAt: $today,
             );
         }

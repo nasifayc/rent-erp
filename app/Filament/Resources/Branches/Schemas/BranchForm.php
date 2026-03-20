@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\Branches\Schemas;
 
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class BranchForm
 {
@@ -26,11 +29,17 @@ class BranchForm
                 TextInput::make('estimated_rent')
                     ->required()
                     ->numeric(),
-                TextInput::make('status')
+                Select::make('status')
                     ->required()
-                    ->default('pending'),
-                TextInput::make('created_by')
-                    ->numeric(),
+                    ->default('pending')
+                    ->options([
+                        'pending' => 'Pending Request',
+                        'agreement_preparation' => 'Agreement Preparation',
+                        'active' => 'Active Branch',
+                        'closed' => 'Closed',
+                    ]),
+                Hidden::make('created_by')
+                    ->default(fn () => Auth::id()),
             ]);
     }
 }

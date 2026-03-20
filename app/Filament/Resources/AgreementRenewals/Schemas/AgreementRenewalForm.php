@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AgreementRenewals\Schemas;
 
+use App\Models\AgreementRenewal;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -15,7 +16,7 @@ class AgreementRenewalForm
         return $schema
             ->components([
                 Select::make('office_rent_agreement_id')
-                    ->relationship('officeRentAgreement', 'id')
+                    ->relationship('officeRentAgreement', 'agreement_id')
                     ->required(),
                 TextInput::make('old_rent')
                     ->required()
@@ -29,12 +30,22 @@ class AgreementRenewalForm
                     ->required(),
                 DatePicker::make('new_end_date')
                     ->required(),
-                TextInput::make('decision')
+                Select::make('decision')
                     ->required()
-                    ->default('renew'),
-                TextInput::make('status')
+                    ->default(AgreementRenewal::DECISION_RENEW)
+                    ->options([
+                        AgreementRenewal::DECISION_RENEW => 'Renew',
+                        AgreementRenewal::DECISION_AMEND => 'Amend',
+                        AgreementRenewal::DECISION_TERMINATE => 'Terminate',
+                    ]),
+                Select::make('status')
                     ->required()
-                    ->default('pending'),
+                    ->default(AgreementRenewal::STATUS_PENDING)
+                    ->options([
+                        AgreementRenewal::STATUS_PENDING => 'Pending',
+                        AgreementRenewal::STATUS_APPROVED => 'Approved',
+                        AgreementRenewal::STATUS_REJECTED => 'Rejected',
+                    ]),
                 TextInput::make('approved_by')
                     ->numeric(),
                 DatePicker::make('approved_at'),

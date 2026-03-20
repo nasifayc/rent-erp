@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
@@ -65,7 +66,12 @@ class VehicleServiceRequestResource extends Resource
 
     public static function canCreate(): bool
     {
-        return static::canViewAny();
+        return Auth::user()?->hasAnyRole([
+            User::ROLE_ADMIN,
+            User::ROLE_FLEET_MANAGER,
+            User::ROLE_DRIVER,
+            User::ROLE_DEPARTMENT_MANAGER,
+        ]) ?? false;
     }
 
     public static function canEdit(Model $record): bool
@@ -74,5 +80,21 @@ class VehicleServiceRequestResource extends Resource
             User::ROLE_ADMIN,
             User::ROLE_FLEET_MANAGER,
         ]) ?? false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->hasRole(User::ROLE_DRIVER)) {
+            return $query->where('requested_by', $user->id);
+        }
+
+        return $query;
     }
 }

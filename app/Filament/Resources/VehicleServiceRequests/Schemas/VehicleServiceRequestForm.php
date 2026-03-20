@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\VehicleServiceRequests\Schemas;
 
+use App\Models\VehicleServiceRequest;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class VehicleServiceRequestForm
 {
@@ -15,27 +19,45 @@ class VehicleServiceRequestForm
         return $schema
             ->components([
                 Select::make('vehicle_id')
-                    ->relationship('vehicle', 'id')
+                    ->relationship('vehicle', 'plate_number')
                     ->required(),
-                TextInput::make('requested_by')
-                    ->numeric(),
+                Hidden::make('requested_by')
+                    ->default(fn () => Auth::id()),
                 TextInput::make('service_type')
                     ->required(),
                 Textarea::make('problem_description')
                     ->required()
                     ->columnSpanFull(),
-                TextInput::make('urgency_level')
+                Select::make('urgency_level')
                     ->required()
-                    ->default('medium'),
-                TextInput::make('status')
+                    ->default('medium')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                        'critical' => 'Critical',
+                    ]),
+                Select::make('status')
                     ->required()
-                    ->default('pending'),
+                    ->default(VehicleServiceRequest::STATUS_PENDING)
+                    ->options([
+                        VehicleServiceRequest::STATUS_PENDING => 'Pending',
+                        VehicleServiceRequest::STATUS_APPROVED => 'Approved',
+                        VehicleServiceRequest::STATUS_IN_PROGRESS => 'In Progress',
+                        VehicleServiceRequest::STATUS_COMPLETED => 'Completed',
+                        VehicleServiceRequest::STATUS_REJECTED => 'Rejected',
+                    ]),
                 TextInput::make('service_provider'),
                 TextInput::make('approved_by')
-                    ->numeric(),
+                    ->numeric()
+                    ->hidden(),
                 DatePicker::make('approved_at'),
                 DatePicker::make('service_date'),
-                TextInput::make('service_report_file'),
+                FileUpload::make('service_report_file')
+                    ->directory('vehicle-service-reports')
+                    ->acceptedFileTypes(['application/pdf', 'image/*'])
+                    ->downloadable()
+                    ->openable(),
             ]);
     }
 }

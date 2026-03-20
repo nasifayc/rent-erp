@@ -10,6 +10,12 @@ class VehicleInspection extends Model
 {
     use HasFactory;
 
+    public const STATUS_VALID = 'valid';
+
+    public const STATUS_EXPIRED = 'expired';
+
+    public const STATUS_RENEWED = 'renewed';
+
     protected $fillable = [
         'vehicle_id',
         'inspection_date',

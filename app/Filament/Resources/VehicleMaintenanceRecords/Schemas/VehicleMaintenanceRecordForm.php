@@ -15,10 +15,11 @@ class VehicleMaintenanceRecordForm
         return $schema
             ->components([
                 Select::make('vehicle_id')
-                    ->relationship('vehicle', 'id')
+                    ->relationship('vehicle', 'plate_number')
                     ->required(),
-                TextInput::make('vehicle_service_request_id')
-                    ->numeric(),
+                Select::make('vehicle_service_request_id')
+                    ->relationship('serviceRequest', 'id')
+                    ->searchable(),
                 TextInput::make('mileage_at_service')
                     ->required()
                     ->numeric(),

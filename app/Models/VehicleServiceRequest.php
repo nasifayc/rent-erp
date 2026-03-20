@@ -10,6 +10,16 @@ class VehicleServiceRequest extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_IN_PROGRESS = 'in_progress';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_REJECTED = 'rejected';
+
     protected $fillable = [
         'vehicle_id',
         'requested_by',
