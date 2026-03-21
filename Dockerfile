@@ -32,6 +32,6 @@ RUN chmod +x docker/php-entrypoint.sh \
 
 USER www-data
 
-EXPOSE 9000
+EXPOSE 8000:8000
 
 ENTRYPOINT ["/var/www/docker/php-entrypoint.sh"]

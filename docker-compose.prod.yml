@@ -13,7 +13,8 @@ services:
       DB_HOST: pgsql
       DB_PORT: 5432
     depends_on:
-      - pgsql
+      pgsql:
+        condition: service_healthy
     networks:
       - rent-erp
 
@@ -41,6 +42,12 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - rent-erp-pgsql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     networks:
       - rent-erp
 
@@ -53,8 +60,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - app
-      - pgsql
+      app:
+        condition: service_started
+      pgsql:
+        condition: service_healthy
     command: ["/bin/sh", "-lc", "while true; do php artisan schedule:run --no-interaction; sleep 60; done"]
     networks:
       - rent-erp
