@@ -5,16 +5,42 @@ echo "[entrypoint] Starting container bootstrap..."
 
 # Wait for PostgreSQL before running migrations.
 if [ "${DB_CONNECTION:-pgsql}" = "pgsql" ]; then
-	echo "[entrypoint] Waiting for PostgreSQL at ${DB_HOST:-pgsql}:${DB_PORT:-5432}..."
+	db_url="${DB_URL:-${DATABASE_URL:-}}"
+	if [ -n "$db_url" ]; then
+		echo "[entrypoint] Waiting for PostgreSQL using DB URL..."
+	else
+		echo "[entrypoint] Waiting for PostgreSQL at ${DB_HOST:-pgsql}:${DB_PORT:-5432}..."
+	fi
 	tries=0
 	until php -r '
-		$host = getenv("DB_HOST") ?: "pgsql";
-		$port = getenv("DB_PORT") ?: "5432";
-		$db = getenv("DB_DATABASE") ?: "postgres";
-		$user = getenv("DB_USERNAME") ?: "postgres";
-		$pass = getenv("DB_PASSWORD") ?: "";
+		$dbUrl = getenv("DB_URL") ?: getenv("DATABASE_URL") ?: "";
+		if ($dbUrl !== "") {
+			$parts = parse_url($dbUrl);
+			if ($parts === false) {
+				exit(1);
+			}
+			$host = $parts["host"] ?? "127.0.0.1";
+			$port = (string)($parts["port"] ?? "5432");
+			$db = isset($parts["path"]) ? ltrim($parts["path"], "/") : "postgres";
+			$user = $parts["user"] ?? "postgres";
+			$pass = $parts["pass"] ?? "";
+			$query = [];
+			if (isset($parts["query"])) {
+				parse_str($parts["query"], $query);
+			}
+			$sslmode = $query["sslmode"] ?? (getenv("DB_SSLMODE") ?: "prefer");
+			$dsn = "pgsql:host={$host};port={$port};dbname={$db};sslmode={$sslmode}";
+		} else {
+			$host = getenv("DB_HOST") ?: "pgsql";
+			$port = getenv("DB_PORT") ?: "5432";
+			$db = getenv("DB_DATABASE") ?: "postgres";
+			$user = getenv("DB_USERNAME") ?: "postgres";
+			$pass = getenv("DB_PASSWORD") ?: "";
+			$sslmode = getenv("DB_SSLMODE") ?: "prefer";
+			$dsn = "pgsql:host={$host};port={$port};dbname={$db};sslmode={$sslmode}";
+		}
 		try {
-			new PDO("pgsql:host={$host};port={$port};dbname={$db}", $user, $pass, [PDO::ATTR_TIMEOUT => 3]);
+			new PDO($dsn, $user, $pass, [PDO::ATTR_TIMEOUT => 3]);
 			exit(0);
 		} catch (Throwable $e) {
 			exit(1);

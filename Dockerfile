@@ -27,11 +27,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 
 COPY . .
 
-RUN chmod +x docker/php-entrypoint.sh \
-    && chown -R www-data:www-data storage bootstrap/cache
+# Remove local/dev framework caches so production container boots with fresh metadata.
+RUN rm -f bootstrap/cache/*.php
 
 USER www-data
 
 EXPOSE 8000:8000
-
-ENTRYPOINT ["/var/www/docker/php-entrypoint.sh"]
