@@ -2,22 +2,28 @@ FROM php:8.3-fpm-alpine
 
 WORKDIR /var/www
 
-RUN apk add --no-cache \
+RUN set -eux; \
+    for i in 1 2 3; do \
+    apk add --no-cache \
     bash \
     curl \
+    icu-dev \
     libpq \
     libzip-dev \
     oniguruma-dev \
     postgresql-dev \
     unzip \
-    zip
+    zip && break; \
+    echo "apk install failed (attempt $i), retrying..."; \
+    sleep 5; \
+    done
 
-RUN docker-php-ext-install pdo pdo_pgsql bcmath
+RUN docker-php-ext-install pdo pdo_pgsql bcmath intl zip
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 COPY . .
 
